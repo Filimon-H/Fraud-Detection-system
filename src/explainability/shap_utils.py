@@ -15,6 +15,71 @@ import matplotlib.pyplot as plt
 import shap
 
 
+def _shap_values_to_2d(
+    shap_values: shap.Explanation,
+    positive_class_index: int = 1,
+) -> np.ndarray:
+    """Normalize SHAP values to a 2D array of shape (n_samples, n_features).
+
+    SHAP can return:
+    - (n_samples, n_features)
+    - (n_samples, n_classes, n_features)
+    - (n_samples, n_features, n_classes)
+
+    For binary classification we prefer the SHAP values for the positive class.
+    """
+    values = np.asarray(shap_values.values)
+
+    if values.ndim == 2:
+        return values
+
+    if values.ndim != 3:
+        raise ValueError(f"Unexpected SHAP values shape: {values.shape}")
+
+    # Case A: (n_samples, n_classes, n_features)
+    if values.shape[2] != 0 and values.shape[2] != 1 and values.shape[2] == np.asarray(shap_values.data).shape[1]:
+        class_idx = min(positive_class_index, values.shape[1] - 1)
+        return values[:, class_idx, :]
+
+    # Case B: (n_samples, n_features, n_classes)
+    if values.shape[1] == np.asarray(shap_values.data).shape[1]:
+        class_idx = min(positive_class_index, values.shape[2] - 1)
+        return values[:, :, class_idx]
+
+    # Fallback: try to infer by matching feature dimension
+    if values.shape[2] == np.asarray(shap_values.data).shape[1]:
+        class_idx = min(positive_class_index, values.shape[1] - 1)
+        return values[:, class_idx, :]
+    if values.shape[1] == np.asarray(shap_values.data).shape[1]:
+        class_idx = min(positive_class_index, values.shape[2] - 1)
+        return values[:, :, class_idx]
+
+    raise ValueError(
+        f"Cannot normalize SHAP values of shape {values.shape} to 2D with data shape {np.asarray(shap_values.data).shape}."
+    )
+
+
+def _shap_base_values_to_1d(
+    shap_values: shap.Explanation,
+    positive_class_index: int = 1,
+) -> np.ndarray:
+    """Normalize SHAP base_values to 1D of length n_samples (positive class if needed)."""
+    base = np.asarray(shap_values.base_values)
+
+    if base.ndim == 0:
+        return np.repeat(base, repeats=np.asarray(shap_values.data).shape[0])
+
+    if base.ndim == 1:
+        return base
+
+    if base.ndim == 2:
+        # (n_samples, n_classes)
+        class_idx = min(positive_class_index, base.shape[1] - 1)
+        return base[:, class_idx]
+
+    raise ValueError(f"Unexpected SHAP base_values shape: {base.shape}")
+
+
 def get_feature_names_from_pipeline(
     pipeline: Any,
     numeric_features: List[str],
@@ -189,10 +254,13 @@ def plot_shap_summary(
     save_path : Path, optional
         If provided, save figure to this path.
     """
+    values_2d = _shap_values_to_2d(shap_values)
+    data_2d = np.asarray(shap_values.data)
+
     plt.figure(figsize=(10, 8))
     shap.summary_plot(
-        shap_values.values,
-        features=shap_values.data,
+        values_2d,
+        features=data_2d,
         feature_names=feature_names,
         max_display=max_display,
         plot_type=plot_type,
@@ -236,8 +304,10 @@ def plot_shap_bar(
     pd.DataFrame
         DataFrame with feature importance values.
     """
+    values_2d = _shap_values_to_2d(shap_values)
+
     # Compute mean absolute SHAP values
-    mean_abs_shap = np.abs(shap_values.values).mean(axis=0)
+    mean_abs_shap = np.abs(values_2d).mean(axis=0)
 
     importance_df = pd.DataFrame({
         "feature": feature_names,
@@ -298,12 +368,15 @@ def plot_shap_dependence(
 
     plt.figure(figsize=(10, 6))
 
+    values_2d = _shap_values_to_2d(shap_values)
+    data_2d = np.asarray(shap_values.data)
+
     if interaction_feature and interaction_feature in feature_names:
         interaction_idx = feature_names.index(interaction_feature)
         shap.dependence_plot(
             feature_idx,
-            shap_values.values,
-            shap_values.data,
+            values_2d,
+            data_2d,
             feature_names=feature_names,
             interaction_index=interaction_idx,
             show=False,
@@ -311,8 +384,8 @@ def plot_shap_dependence(
     else:
         shap.dependence_plot(
             feature_idx,
-            shap_values.values,
-            shap_values.data,
+            values_2d,
+            data_2d,
             feature_names=feature_names,
             show=False,
         )
@@ -354,11 +427,15 @@ def plot_shap_waterfall(
     save_path : Path, optional
         If provided, save figure to this path.
     """
+    values_2d = _shap_values_to_2d(shap_values)
+    base_1d = _shap_base_values_to_1d(shap_values)
+    data_2d = np.asarray(shap_values.data)
+
     # Create single-row explanation
     single_exp = shap.Explanation(
-        values=shap_values.values[index],
-        base_values=shap_values.base_values[index] if hasattr(shap_values.base_values, "__len__") else shap_values.base_values,
-        data=shap_values.data[index],
+        values=values_2d[index],
+        base_values=base_1d[index],
+        data=data_2d[index],
         feature_names=feature_names,
     )
 
