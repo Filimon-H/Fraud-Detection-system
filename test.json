@@ -1,0 +1,119 @@
+{
+  "kind": "collectionType",
+  "collectionName": "batches",
+  "info": {
+    "singularName": "batch",
+    "pluralName": "batches",
+    "displayName": "Batch ",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Batch": {
+      "type": "integer",
+      "required": true,
+      "unique": true
+    },
+    "Class_link": {
+      "type": "string",
+      "required": true
+    },
+    "Communication_link": {
+      "type": "string",
+      "required": true
+    },
+    "additional_info": {
+      "type": "json"
+    },
+    "trainees": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::trainee.trainee",
+      "mappedBy": "batch"
+    },
+    "reviewers": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::reviewer.reviewer",
+      "inversedBy": "batches"
+    },
+    "assignment_categories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::assignment-category.assignment-category",
+      "mappedBy": "batch"
+    },
+    "portfolios": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::portfolio.portfolio",
+      "mappedBy": "batch"
+    },
+    "topic_managements": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::topic-management.topic-management",
+      "mappedBy": "batch"
+    },
+    "batch_competencies": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::batch-competency.batch-competency",
+      "mappedBy": "BatchID"
+    },
+    "onboardings": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::onboarding.onboarding",
+      "mappedBy": "batch"
+    },
+    "challenge_documents": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::challenge-document.challenge-document",
+      "mappedBy": "BatchID"
+    },
+    "exchanges": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::exchange.exchange",
+      "mappedBy": "BatchID"
+    },
+    "notifications": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::notification.notification",
+      "mappedBy": "BatchIDs"
+    },
+    "review_categories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review-category.review-category",
+      "mappedBy": "BatchID"
+    },
+    "all_users": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::all-user.all-user",
+      "mappedBy": "BatchIDs"
+    },
+    "groups": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::group.group",
+      "mappedBy": "batches"
+    },
+    "modules": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::module.module",
+      "mappedBy": "batches"
+    },
+    "configs": {
+      "type": "json"
+    }
+  }
+}
